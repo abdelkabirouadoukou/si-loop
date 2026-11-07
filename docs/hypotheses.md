@@ -1,13 +1,14 @@
 # SI-Loop: Pre-registered hypotheses and analysis plan
 
-> **Status:** DRAFT. Edit the predictions to reflect your own beliefs, then commit **before** running any ablation arm other than `full` on seed 0.
-> Commit hash of this file must precede `results/ablation.json` in git history.
+> **Status:** FROZEN PRE-REGISTRATION, EXECUTED (Study 1, report run 2026-11-07). Sections 1-5 (setup, metrics, hypotheses, credences, analysis plan) are **unchanged** from the version committed before the report run (SHA-256 `e2c1d356272b04d3dfb9b39f7545526e8192511315160f87d67a7042665e9764`; recover with `git show <hypotheses-commit>:docs/hypotheses.md`). Only this status line, section 0 and section 6 were edited afterwards, to disclose what actually happened. Outcomes are reported in `paper.pdf` and `results/analysis.json`.
+> This pre-registration is informal (no third-party registry); its integrity rests on git commit order and the hashes in `results/config_hashes.txt`.
 
-## 0. What has already been observed (disclosure)
+## 0. What had been observed before the report run (disclosure)
 
-- Only `--arm full --seed 0` (smoke test and one 12-round run, code version `<fill in commit hash>`) has been run.
-- Seed 0 was used for debugging, so it is **not** a clean report seed. Report seeds are **1-10**. (If you keep 0-9, state here that seed 0 was used for debugging.)
-- Observed in that single run, treated as a qualitative note and not as evidence for any hypothesis: the curriculum (C) drove `hard_share` to ~0 by round 8; the judge accepted rounds where harness `eval_all` got slightly worse (r03, r10); interaction was ~0 after round 0.
+- `--arm full --seed 0` was run for smoke tests and debugging. Seed 0 is **not** a report seed. Report seeds are **1-10**.
+- Debugging on seed 0 led to stability guards (tanh-bounded adapter, inner-loop gradient clipping, loss cap, NaN guard) and to a fix of a workspace bug (a rejected round now retries under the last accepted broadcast; before the fix `full`, `no_ws` and `random_ws` were identical). The code was frozen after these changes.
+- Observed in that single run, qualitative only: the curriculum (C) drove `hard_share` to ~0 by round 8; the judge accepted rounds where harness `eval_all` got slightly worse (r03, r10); interaction was ~0 after round 0.
+- Dev seeds 100-104 were run for all four arms and a gap-monitor sweep was run on `full` before the report run, by an AI assistant. Outcomes were examined. The sweep selection rule was declared first and selected nothing, so **no hyperparameter was changed**. Details: `docs/dev_diagnostics.md`.
 
 ## 1. Setup frozen for the report run
 
@@ -70,4 +71,6 @@ Probabilities are my credence that the stated outcome will be observed, written 
 
 | Date | Change | Reason | Made before/after seeing report results? |
 |---|---|---|---|
-| | | | |
+| 2026-11-07 | Minimum detectable effect computed from the SD of paired differences of the report seeds (normal approximation, 80% power, Bonferroni), not from dev-seed std as written in section 4.3 | Simpler and uses the data actually analysed; the paper states the method | After |
+| 2026-11-07 | Paired bootstrap CIs (95% and Bonferroni 98.33%) also reported for `final_all` and `auc_eval_all`, which section 4.2 specified only for `final_hard` | Secondary metrics; decision rule applies to `final_hard` only. The `random_ws` advantage on `auc_eval_all` is therefore a secondary, uncorrected-across-metrics finding | After |
+| 2026-11-07 | None of the hyperparameters in section 1 were changed after dev diagnostics | Pre-declared sweep rule selected nothing | Before |
