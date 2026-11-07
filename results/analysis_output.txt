@@ -1,0 +1,30 @@
+arm                   final_hard             final_all          auc_eval_all           accept_rate            n_diverged
+full             1.048 ±  0.190       0.872 ±  0.148       0.906 ±  0.137       0.267 ±  0.123       0.000 ±  0.000
+no_ws            1.038 ±  0.189       0.872 ±  0.166       0.920 ±  0.130       0.275 ±  0.118       0.000 ±  0.000
+random_ws        1.022 ±  0.162       0.848 ±  0.154       0.890 ±  0.136       0.275 ±  0.147       0.000 ±  0.000
+no_judge         0.962 ±  0.146       0.755 ±  0.092       0.833 ±  0.165       1.000 ±  0.000       0.000 ±  0.000
+
+delta(arm) = metric(arm) - metric(full); > 0 means full is better (lower-is-better metrics)
+final_hard    no_ws      mean=-0.010  95% CI [-0.050, +0.026]  Bonf 98.33% CI [-0.060, +0.034]
+final_hard    random_ws  mean=-0.027  95% CI [-0.062, +0.007]  Bonf 98.33% CI [-0.071, +0.015]
+final_hard    no_judge   mean=-0.086  95% CI [-0.151, -0.025]  Bonf 98.33% CI [-0.168, -0.014]
+final_all     no_ws      mean=-0.001  95% CI [-0.045, +0.038]  Bonf 98.33% CI [-0.056, +0.043]
+final_all     random_ws  mean=-0.024  95% CI [-0.058, +0.003]  Bonf 98.33% CI [-0.068, +0.008]
+final_all     no_judge   mean=-0.117  95% CI [-0.192, -0.047]  Bonf 98.33% CI [-0.209, -0.034]
+auc_eval_all  no_ws      mean=+0.014  95% CI [-0.001, +0.031]  Bonf 98.33% CI [-0.004, +0.033]
+auc_eval_all  random_ws  mean=-0.016  95% CI [-0.028, -0.005]  Bonf 98.33% CI [-0.031, -0.003]
+auc_eval_all  no_judge   mean=-0.073  95% CI [-0.114, -0.039]  Bonf 98.33% CI [-0.125, -0.031]
+
+Decision rule on final_hard (supported only if Bonferroni CI excludes 0 favorably AND mean >= SESOI):
+  H1 full vs no_ws: no detectable difference (NOT 'no effect')
+  H2 full vs random_ws: no detectable difference (NOT 'no effect')
+  H3 full vs no_judge: full clearly WORSE (the component hurts)
+
+Approx. minimum detectable effect on final_hard (80% power, Bonferroni): {'no_ws': 0.068, 'random_ws': 0.061, 'no_judge': 0.111}
+
+H4 (full arm, round 0 excluded): seeds used=9, dropped=1
+  mean |interaction| accepted=0.0101  rejected=0.0164  diff(rej-acc)=+0.0063  95% CI [+0.0019, +0.0110]
+
+Exploratory: {'corr_phiA_lcb': 0.732444214387143, 'accepted_rounds_eval_all_worse': 2, 'accepted_rounds_total': 23}
+
+wrote results/analysis.json final_hard.png curves.png
