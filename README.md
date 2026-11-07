@@ -2,7 +2,7 @@
 
 **Super Interintelligent Loop with a Global Workspace ("Mom Center")**: a research scaffold for studying a closed loop of weight generation, task execution, curriculum synthesis and guarded oversight, coordinated through a limited-capacity workspace.
 
-> **Status:** early research scaffold. The code runs on a synthetic few-shot regression task and makes **no claim** about scaling to language models. No results are reported yet. Treat every design choice below as a hypothesis to be tested by the ablations, not as an established finding.
+> **Status:** research scaffold with one completed, pre-specified ablation (Study 1; see [Results](#results-study-1) and `paper.pdf`). The code runs on a synthetic few-shot regression task and makes **no claim** about scaling to language models or about recursive self-improvement. Treat every design choice below as a hypothesis, not an established finding.
 
 ## Motivation
 
@@ -105,8 +105,32 @@ Suggested questions:
 
 Report negative results too. With few seeds, differences will often be within noise; use more seeds before drawing conclusions.
 
+The Study 1 report run used the parallel driver and the analysis script (hypotheses and plan in `docs/hypotheses.md`, frozen; code hashes in `results/config_hashes.txt`):
+
+```bash
+python run_parallel.py --seeds 1 2 3 4 5 6 7 8 9 10 --out results/ablation.json
+python -I analyze.py results/ablation.json --out results/
+```
+
+## Results (Study 1)
+
+Ten paired seeds, 12 rounds, query MSE (lower is better); full details, CIs and caveats in `paper.pdf`.
+
+| Arm | `final_hard` | `final_all` | accept rate |
+|---|---|---|---|
+| `full` | 1.048 ± 0.190 | 0.872 ± 0.148 | 0.267 |
+| `no_ws` | 1.038 ± 0.189 | 0.872 ± 0.166 | 0.275 |
+| `random_ws` | 1.022 ± 0.162 | 0.848 ± 0.154 | 0.275 |
+| `no_judge` | 0.962 ± 0.146 | 0.755 ± 0.092 | 1.000 |
+
+- **H1, H2:** no detectable difference between the competitive workspace and no workspace or random winners (low power; this is not evidence of no effect).
+- **H3:** removing the judge *improved* `final_hard` by 0.086 (Bonferroni 98.3% CI of the difference: [-0.168, -0.014]). The judge rejected about 73% of rounds, so guarded arms got far fewer updates. The toy has no adversarial pressure, so this does not show that judge guards are harmful in general.
+- **H4:** the interaction term was slightly larger on rejected rounds (small, confounded).
+- All arms stay near the zero-predictor level (about 1.29) on hard tasks, and the curriculum collapses to easy bins.
+
 ## Limitations
 
+- The judge is over-conservative at the default settings (see paper); a recalibrated judge needs a new pre-registered study.
 - Synthetic regression only; no language models, no real data engine, no open-ended tasks.
 - First-order meta-gradients; no second-order MAML terms.
 - Model D here is a fixed, non-learned judge with exact ground truth. A *learned* judge, which is where reward hacking is most likely, is not implemented.
@@ -120,7 +144,7 @@ Report negative results too. With few seeds, differences will often be within no
 - SEAL (Zweiger et al., NeurIPS 2025, arXiv:2506.10943): self-generated finetuning data with RL on downstream reward.
 - Absolute Zero (Zhao et al., 2025, arXiv:2505.03335): proposer/solver self-play with a code executor.
 - Text-to-LoRA (Charakorn et al., ICML 2025) and Drag-and-Drop LLMs (Liang et al., NeurIPS 2025, arXiv:2506.16406): hypernetwork weight generation.
-- Global Workspace Agents (Shang, 2026, arXiv:2604.08206), BIGMAS (arXiv:2603.15371), blackboard LLM multi-agent systems (arXiv:2507.01701): workspace-style coordination.
+- "Theater of Mind" for LLMs, a Global Workspace Theory architecture (Shang, 2026, arXiv:2604.08206), BIGMAS (arXiv:2603.15371), blackboard LLM multi-agent systems (arXiv:2507.01701): workspace-style coordination.
 - Judge exploitation: Gao et al. (arXiv:2210.10760), Coste et al. (arXiv:2310.02743), and "More Convincing, Not More Correct" (arXiv:2607.05904).
 - Recursive self-improvement survey (Chen et al., 2026, arXiv:2607.07663).
 - Foundations: Baars (1988) on Global Workspace Theory; Finn et al. (2017, arXiv:1703.03400) on MAML.
@@ -132,6 +156,8 @@ Individual components here have prior art; the intended contribution is the comb
 This code and documentation were developed with AI assistance (Anthropic's Claude), with the author directing the design and responsible for the repository.
 
 ## Citation
+
+Study 1 technical report: `paper.pdf` / `paper.tex`. Software citation:
 
 ```bibtex
 @software{ouadoukou2026siloop,
