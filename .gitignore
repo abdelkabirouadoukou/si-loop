@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Model checkpoints and large artifacts
+*.pt
+*.pth
+*.ckpt
+
+# Dev-seed tuning runs (the report run, results/ablation.json, IS committed)
+results/dev*.json
+results/tmp*/
+
+# Local scratch
+scratch/
+*.log
+.env

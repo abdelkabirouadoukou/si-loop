@@ -37,6 +37,9 @@ K_SUP, K_QRY = 10, 40   # support / query points per task
 INNER, LR_IN = 3, 0.05  # inner adaptation steps and step size
 WS_D = 16               # workspace embedding dimension
 TAU = 0.3               # query-MSE threshold counted as "success" by the curriculum
+AD_SCALE = 3.0          # soft bound on adapter entries emitted by A (tanh squashing)
+INNER_CLIP = 5.0        # global grad-norm clip for the inner adaptation loop
+LOSS_CAP = 1e3          # per-task query loss above this (or non-finite) is a divergence: no backward
 
 ARMS = {
     "full": dict(ws="compete", judge=True),
@@ -106,7 +109,7 @@ class Hyper(nn.Module):
 
     def forward(self, xs, ys, ws):
         z = self.enc(torch.cat([xs, ys], -1)).mean(0)
-        flat = self.gen(torch.cat([z, ws]))
+        flat = AD_SCALE * torch.tanh(self.gen(torch.cat([z, ws])) / AD_SCALE)   # bounded adapter
         out, i = {}, 0
         for k, shape in ADAPTER_SHAPES.items():
             n = math.prod(shape)
@@ -121,6 +124,9 @@ def adapt(B: Worker, ad0: dict, xs, ys, steps: int = INNER, lr: float = LR_IN) -
     for _ in range(steps):
         loss = F.mse_loss(B(xs, ad), ys)
         grads = torch.autograd.grad(loss, list(ad.values()))
+        gnorm = torch.sqrt(sum((g_ ** 2).sum() for g_ in grads))
+        scale = torch.clamp(INNER_CLIP / (gnorm + 1e-12), max=1.0)
+        grads = [g_ * scale for g_ in grads]
         ad = {k: (v - lr * g).detach().requires_grad_() for (k, v), g in zip(ad.items(), grads)}
     return ad
 
@@ -135,22 +141,33 @@ def meta_step(A, B, tasks, ws, opt_a, opt_b, g):
     """
     opt_a.zero_grad()
     opt_b.zero_grad()
-    lq_all, lq0_all = [], []
+    lq_all, lq0_all, n_div = [], [], 0
     for t in tasks:
         xs, ys, xq, yq = task_data(t, g)
         ad0 = A(xs, ys, ws)
         ad = adapt(B, ad0, xs, ys)
         lq = F.mse_loss(B(xq, ad), yq)
+        l = lq.item()
+        if not math.isfinite(l) or l > LOSS_CAP:      # diverged task: count as failure, no gradient
+            n_div += 1
+            lq_all.append(LOSS_CAP)                   # logged value is capped, divergence is counted
+            lq0_all.append(LOSS_CAP)
+            continue
         (lq / len(tasks)).backward()
         torch.autograd.backward(list(ad0.values()), [ad[k].grad for k in ad0])
-        lq_all.append(lq.item())
+        lq_all.append(l)
         with torch.no_grad():
-            lq0_all.append(F.mse_loss(B(xq, ad0), yq).item())
+            lq0_all.append(min(F.mse_loss(B(xq, ad0), yq).item(), LOSS_CAP))
     gn_a = nn.utils.clip_grad_norm_(A.parameters(), 1.0).item()
     gn_b = nn.utils.clip_grad_norm_(B.parameters(), 1.0).item()
-    opt_a.step()
-    opt_b.step()
-    return torch.tensor(lq_all), torch.tensor(lq0_all), gn_a, gn_b
+    if math.isfinite(gn_a) and math.isfinite(gn_b):
+        opt_a.step()
+        opt_b.step()
+    else:                                              # never let a NaN/inf gradient touch the weights
+        opt_a.zero_grad()
+        opt_b.zero_grad()
+        n_div += 1
+    return torch.tensor(lq_all), torch.tensor(lq0_all), gn_a, gn_b, n_div
 
 
 def eval_tasks(A, B, data, ws) -> torch.Tensor:
@@ -343,15 +360,19 @@ def run(arm="full", seed=0, rounds=12, steps=40, meta_bs=8, verbose=True) -> dic
     ws_vec = last_ws = ws_next = torch.zeros(WS_D)
     util, diag = {}, D.diag_set(32)
     history, n_ok = [], 0
+    gc = torch.Generator().manual_seed(91_000 + seed)
+    curve_all, curve_hard = make_eval_set(64, gc), make_eval_set(64, gc, hard=True)
 
     for r in range(rounds):
         stats = []
         for _ in range(steps):
             bins, tasks = C.propose(meta_bs, g)
-            lq, lq0, gn_a, gn_b = meta_step(A, B, tasks, ws_vec, opt_a, opt_b, g)
+            lq, lq0, gn_a, gn_b, n_div = meta_step(A, B, tasks, ws_vec, opt_a, opt_b, g)
             rewards = C.update(bins, lq < TAU)
             learn = sum(rewards.values()) / max(len(rewards), 1)
-            stats.append([lq.mean().item(), lq0.mean().item(), gn_a, gn_b, learn])
+            gn_a = min(gn_a, LOSS_CAP) if math.isfinite(gn_a) else LOSS_CAP
+            gn_b = min(gn_b, LOSS_CAP) if math.isfinite(gn_b) else LOSS_CAP
+            stats.append([lq.mean().item(), lq0.mean().item(), gn_a, gn_b, learn, float(n_div)])
         m = torch.tensor(stats).mean(0).tolist()
         share = F.softmax(C.logits, 0)
 
@@ -368,13 +389,13 @@ def run(arm="full", seed=0, rounds=12, steps=40, meta_bs=8, verbose=True) -> dic
         if not cfg["judge"]:
             ok = True
         row = dict(round=r, train_q=m[0], init_q=m[1], accept=bool(ok),
-                   hard_share=share[-1].item(), slots=len(W.slots), **info)
-        note = ""
+                   hard_share=share[-1].item(), slots=len(W.slots), n_diverged=m[5], **info)
+        # Shapley every round (accepted or rejected) so H4 can compare the two groups
+        phi = shapley_AB(last_models, (A, B), diag, ws_train)
+        row.update({f"shapley_{k}": v for k, v in phi.items()})
+        note = f" | phi_A={phi['phi_A']:+.3f} phi_B={phi['phi_B']:+.3f} inter={phi['interaction']:+.3f}"
         if ok:
             n_ok += 1
-            phi = shapley_AB(last_models, (A, B), diag, ws_train)
-            row.update({f"shapley_{k}": v for k, v in phi.items()})
-            note = f" | phi_A={phi['phi_A']:+.3f} phi_B={phi['phi_B']:+.3f} inter={phi['interaction']:+.3f}"
             for c in W.slots:
                 W.credit(c["src"], info["lcb"])
                 util[c["src"]] = 0.8 * util.get(c["src"], 0.0) + 0.2 * info["lcb"]
@@ -386,11 +407,14 @@ def run(arm="full", seed=0, rounds=12, steps=40, meta_bs=8, verbose=True) -> dic
             C.logits = last_state[2].clone()
             opt_a, opt_b = make_opts()
             ws_vec = ws_next  # a rejected round's broadcast is discarded; retry under the last accepted one
+        # harness-side learning curve: accepted models on fixed sets, never used for any decision
+        row["eval_all"] = eval_tasks(*last_models, curve_all, last_ws)[:, 0].mean().item()
+        row["eval_hard"] = eval_tasks(*last_models, curve_hard, last_ws)[:, 0].mean().item()
         history.append(row)
         if verbose:
             print(f"[{arm} s{seed}] r{r:02d} train_q={m[0]:.3f} init_q={m[1]:.3f} lcb={info['lcb']:+.3f} "
                   f"gap_bad={info['gap_bad']} canary_bad={info['canary_bad']} accept={ok} "
-                  f"slots={len(W.slots)} hard={share[-1].item():.2f}{note}")
+                  f"slots={len(W.slots)} hard={share[-1].item():.2f} div={m[5]:.0f} eval_all={row['eval_all']:.3f}{note}")
 
     # harness-side final evaluation on sets never used for any decision
     gf = torch.Generator().manual_seed(90_000 + seed)
