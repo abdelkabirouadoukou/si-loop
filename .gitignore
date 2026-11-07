@@ -31,3 +31,6 @@ results/tmp*/
 scratch/
 *.log
 .env
+# SI-Loop v2 runtime state
+runs/
+sealed/

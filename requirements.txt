@@ -1,1 +1,2 @@
-torch>=2.2
+torch>=2.2          # Study 1 (si_loop_toy.py)
+pytest>=7.4         # Study 2 kernel tests and sandboxed self-tests
