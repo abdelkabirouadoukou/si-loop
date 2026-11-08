@@ -1,17 +1,17 @@
 {
  "selection_families": {
-  "anchor": 0.333,
-  "champion": 0.767,
-  "fixed": 52,
+  "anchor": 0.275,
+  "champion": 0.775,
+  "fixed": 60,
   "broken": 0,
   "n": 120
  },
  "heldout_family": {
-  "anchor": 0.358,
-  "champion": 0.358,
+  "anchor": 0.383,
+  "champion": 0.383,
   "fixed": 0,
   "broken": 0,
   "n": 120
  },
- "cross_family_gap": 0.434
+ "cross_family_gap": 0.5
 }

@@ -13,6 +13,7 @@ The agent only ever sees its own worktree; the secret, oracles and hidden tests 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import secrets
@@ -35,10 +36,16 @@ from study2.verifier import PytestVerifier                                     #
 KERNEL_DIR = ROOT / "kernel"
 
 
-def load_secret(out: Path) -> bytes:
+DEMO_SECRET_LABEL = "study2-demo-v1"          # fixed, PUBLIC: the demo is for reproducing the paper, not for real studies
+
+
+def load_secret(out: Path, fixed_label: str = "") -> bytes:
+    """$SI_LOOP_SECRET wins. Otherwise a fixed label (demo runs, reproducible) or a random per-folder secret."""
     env = os.environ.get("SI_LOOP_SECRET")
     if env:
         return env.encode()
+    if fixed_label:
+        return hashlib.sha256(fixed_label.encode()).digest()
     p = out / "secret.key"
     if not p.exists():
         out.mkdir(parents=True, exist_ok=True)
@@ -57,14 +64,14 @@ def make_config(out: Path, a, model_desc: dict) -> Config:
                   container_image=a.container_image or None)
 
 
-def build(out: Path, a, client) -> Orchestrator:
+def build(out: Path, a, client, demo: bool = False) -> Orchestrator:
     meta = LLMMetaAgent(client, max_retries=2, temperature=a.temperature)
     cfg = make_config(out, a, meta.describe())
     if not (cfg.repo_dir / ".git").exists():
         write_seed_agent(cfg.repo_dir)
         GitRepo(cfg.repo_dir, out / "_init_wt").init("seed agent")
     repo = GitRepo(cfg.repo_dir, cfg.runs_dir / "worktrees")
-    ver = PytestVerifier(load_secret(out), Sandbox(cfg))
+    ver = PytestVerifier(load_secret(out, DEMO_SECRET_LABEL if demo else ""), Sandbox(cfg))
     return Orchestrator(cfg, repo, Sandbox(cfg), ver, meta, Archive(cfg.runs_dir / "archive.json", cfg.seed, p_exploit=cfg.p_exploit),
                         ShapleyAttributor(cfg, repo, ver), MomCenter(cfg.runs_dir / "mom.db"), KernelGuard(KERNEL_DIR))
 
@@ -141,7 +148,7 @@ def cmd_check(a) -> int:
 def cmd_run(a, demo: bool = False) -> int:
     out = Path(a.out)
     client = make_client("offline") if demo else make_client(a.client, a.model, a.base_url, a.api_key_env)
-    orch = build(out, a, client)
+    orch = build(out, a, client, demo=demo)
     print(f"model: {client.describe()}  |  out: {out}  |  cycles: {a.cycles}")
     summary = orch.run(a.cycles, workers=a.workers, accept_fingerprint_change=a.accept_fingerprint_change)
     print("run:", summary)

@@ -35,7 +35,6 @@ def _alarm(signum, frame):
 
 def main():
     cases = json.load(open(sys.argv[1]))
-    real_out = os.fdopen(os.dup(1), "w")
     sys.stdout = open(os.devnull, "w")
     sys.addaudithook(_hook)
     signal.signal(signal.SIGALRM, _alarm)

@@ -1,9 +1,0 @@
-Study 2: harden SI-Loop v2 against creeping degradation, adaptive overfitting and weak verification
-
-- anchor + margin budget + anchor/peak/held-out audits (kernel/anchor.py)
-- two-stage screen/confirm judge, SPRT/e-value early stopping, e-LOND FDR (pipeline.py, stats.py)
-- sealed 3-tier verifier, honeypots, mutation kill-rate harness
-- yield_test harness vs frozen M0, clade parent selection, operator bandit
-- hash-chained ledger, circuit breakers, worktree GC, model fingerprint, watchdog
-- run_ablations.py: pre-registered A0-A3 arms; README + 68 tests
-Study 1 files untouched.

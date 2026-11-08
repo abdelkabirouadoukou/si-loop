@@ -37,9 +37,8 @@ python run_study2.py demo
 ```
 
 This uses a **scripted proposer** (`OfflineDemoClient`), not a model. It proves that the whole pipeline works:
-sealed hidden-pytest verifier, two-stage gate, audits, hash-chained ledger. A typical result: the pass rate on the
-selection families goes from about 0.33 to 0.77, and the held-out family stays flat, which raises the
-cross-family generalisation alarm. This is the expected, correct behaviour.
+sealed hidden-pytest verifier, two-stage gate, audits, hash-chained ledger. The demo uses a fixed public secret, so the result is identical on every run: the pass rate on the
+selection families goes from 0.28 to 0.78, the held-out family stays flat at 0.38, and the cross-family alarm fires. This is the expected, correct behaviour.
 
 ### 3. Run it with a real LLM
 
