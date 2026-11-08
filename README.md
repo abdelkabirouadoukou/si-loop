@@ -1,4 +1,14 @@
-# SI-Loop
+<p align="center">
+  <img src="docs/img/logo.png" width="120" alt="SI-Loop logo">
+</p>
+
+<h1 align="center">SI-Loop</h1>
+<p align="center"><i>Guarded recursive self-improvement for code agents</i><br>
+<b>Release: november-2026</b></p>
+
+<p align="center">
+  <img src="docs/img/architecture.png" width="88%" alt="Trust boundaries: immutable kernel, agent worktree, sealed verifier">
+</p>
 
 Guarded recursive self-improvement (RSI) for code agents, in two studies.
 
@@ -10,6 +20,21 @@ Guarded recursive self-improvement (RSI) for code agents, in two studies.
 | **Docs** | [`docs/README_study1.md`](docs/README_study1.md) | this file |
 
 > Study 1 files are never edited. `si_loop_toy.py` is pinned by sha256 in `results/config_hashes.txt`.
+
+---
+
+## Figures
+
+| Two-stage gate | False-accept calibration |
+|---|---|
+| ![gate](docs/img/gate.png) | ![calibration](docs/img/calibration.png) |
+
+| Pre-registered ablation pilot | Verifier kill rate |
+|---|---|
+| ![ablation](docs/img/ablation.png) | ![verifier](docs/img/verifier.png) |
+
+All figures are regenerated from the raw results by `python docs/make_figures.py`.
+The ablation numbers are a small synthetic pilot (see the paper's limitations). They are not evidence of LLM self-improvement.
 
 ---
 

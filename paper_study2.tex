@@ -17,10 +17,13 @@
 \title{Guarded Recursive Self-Improvement:\\[2pt] Bounding Creeping Degradation and Reward Hacking\\[2pt] in Autonomous Agent Loops}
 \author{Abdelkabir Ouadoukou\thanks{Independent researcher. Contact: abdelkabir.ouadoukou@gmail.com.
 Substantial AI assistance was used; see the disclosure at the end.}}
-\date{November 2026}
+% Repository link, shown on the first page directly under the date
+\date{November 2026\\[9pt]{\small\repoline}}
+\newcommand{\repoline}{\href{https://github.com/abdelkabirouadoukou/si-loop}{\raisebox{-0.2ex}{\includegraphics[height=1.6ex]{docs/img/github-icon.pdf}}~\texttt{si-loop}}}
 
 \begin{document}
 \maketitle
+\vspace{-1.6em}
 
 \begin{abstract}
 Self-improving code agents usually follow one rule: propose a patch and keep it if a benchmark score rises.
@@ -86,14 +89,8 @@ checks it, runs the two-stage judge, and promotes or rolls back. The agent never
 audit results, or held-out results.
 
 \begin{figure}[t]
-\centering\small
-\fbox{\parbox{0.92\linewidth}{\centering
-\textbf{Immutable kernel} (digest-checked every cycle)\\
-orchestrator $\to$ two-stage judge $\to$ gate $\to$ git promote or rollback\\
-ledger, circuit breakers, audits}}\\[3pt]
-$\Big\downarrow$ \emph{proposal: strict JSON, AST scan, path policy}\hspace{1.5em}$\Big\uparrow$ \emph{EvalResult only}\\[3pt]
-\fbox{\parbox{0.44\linewidth}{\centering\textbf{Agent worktree}\\ \texttt{agent/**} is the only writable subtree; the meta-agent reads it and returns a proposal}}\hspace{0.5em}
-\fbox{\parbox{0.44\linewidth}{\centering\textbf{Sealed verifier}\\ secret, oracles, hidden tests, held-out family; candidate code runs in a separate sandbox process that receives inputs only}}
+\centering
+\includegraphics[width=0.92\linewidth]{docs/img/architecture.png}
 \caption{Trust boundaries. Arrows show the only data that cross them: a validated proposal goes down, and aggregate booleans and flags come back up.}
 \label{fig:arch}
 \end{figure}
@@ -282,6 +279,15 @@ The mean final gain on the selection families over the frozen anchor was \GainAZ
 \label{tab:tests}
 \input{results/study2/tab_tests.tex}
 \end{table}
+
+\paragraph{Figure.} Figure~\ref{fig:abl} shows every seed as a dot, which the table above cannot show.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.8\linewidth]{docs/img/ablation.png}
+\caption{Final gain over the cycle-0 anchor on the selection families, by arm. Bars are means, error bars are standard deviations, and each dot is one seed (\NSeeds{} per arm).}
+\label{fig:abl}
+\end{figure}
 
 \paragraph{Results \& discussion.} H2 is supported. Random patches behind the same gate did not improve the agent (mean \GainATwo{}), whereas informed proposals behind the same gate did (Holm $p=$ \HTwoHolm). So the gain does not come from the gate alone.
 H1 is not supported. The point estimate favours A1 (mean difference \HOneMean{}, 95\% CI $[$\HOneLo{}, \HOneHi{}$]$, Holm $p=$ \HOneHolm), but the interval contains zero.
