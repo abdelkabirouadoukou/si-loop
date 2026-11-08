@@ -1,0 +1,42 @@
+{
+ "arm": "A2",
+ "seed": 3,
+ "cycles": 12,
+ "accepts": 4,
+ "halted": null,
+ "anchor_pass": 0.20833333333333334,
+ "final_pass": 0.1875,
+ "gain_selection": -0.020833333333333343,
+ "anchor_heldout": 0.0,
+ "final_heldout": 0.0,
+ "gain_heldout": 0.0,
+ "accept_rate_first_half": 0.3333333333333333,
+ "accept_rate_second_half": 0.3333333333333333,
+ "meta_patches": 0,
+ "meta_accepts": 0,
+ "tokens": 11690.0,
+ "yield_test_tokens": 0,
+ "margin_spent": 0.02,
+ "rollbacks": 0,
+ "security_flags": 0,
+ "ledger_ok": true,
+ "trajectory": [
+  {
+   "cycle": 2,
+   "pass": 0.20833333333333334
+  },
+  {
+   "cycle": 3,
+   "pass": 0.20833333333333334
+  },
+  {
+   "cycle": 8,
+   "pass": 0.20833333333333334
+  },
+  {
+   "cycle": 11,
+   "pass": 0.1875
+  }
+ ],
+ "wall_s": 50.2
+}

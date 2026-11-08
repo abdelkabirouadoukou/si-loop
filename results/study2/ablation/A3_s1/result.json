@@ -1,0 +1,30 @@
+{
+ "arm": "A3",
+ "seed": 1,
+ "cycles": 12,
+ "accepts": 1,
+ "halted": null,
+ "anchor_pass": 0.20833333333333334,
+ "final_pass": 0.2916666666666667,
+ "gain_selection": 0.08333333333333334,
+ "anchor_heldout": 0.0,
+ "final_heldout": 0.0,
+ "gain_heldout": 0.0,
+ "accept_rate_first_half": 0.16666666666666666,
+ "accept_rate_second_half": 0.0,
+ "meta_patches": 0,
+ "meta_accepts": 0,
+ "tokens": 12380.0,
+ "yield_test_tokens": 0,
+ "margin_spent": 0.0,
+ "rollbacks": 0,
+ "security_flags": 0,
+ "ledger_ok": true,
+ "trajectory": [
+  {
+   "cycle": 0,
+   "pass": 0.2916666666666667
+  }
+ ],
+ "wall_s": 37.4
+}

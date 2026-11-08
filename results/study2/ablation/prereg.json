@@ -1,0 +1,49 @@
+{
+ "analysis_plan": "Unit = run (seed). Paired by seed. Report mean difference, 95% bootstrap CI and one-sided sign-flip p; Holm correction over H1-H3. A recursive-improvement claim requires H1 (Holm-adjusted p < 0.05) AND H4 AND no halted/tampered run. Anything else is reported as iterative improvement only.",
+ "anchor_every": 5,
+ "arms": [
+  "A0",
+  "A1",
+  "A2",
+  "A3"
+ ],
+ "arms_description": {
+  "A0": "frozen improver (solver only)",
+  "A1": "full recursive loop (solver + improver, yield-tested)",
+  "A2": "random-patch control (same gate)",
+  "A3": "compute-matched best-of-N from the seed agent"
+ },
+ "cycles": 12,
+ "final_eval": {
+  "cycle_id": 7000000,
+  "n": 96
+ },
+ "heldout_every": 10,
+ "hypotheses": {
+  "H1": "A1 - A0 > 0 on final selection gain (evolving the improver adds improvement beyond a frozen improver)",
+  "H2": "A0 - A2 > 0 (informed search + gate beats random patches + gate: the gate alone is not the effect)",
+  "H3": "A0 - A3 > 0 (iterating and accumulating beats compute-matched sampling of single patches)",
+  "H4": "A1 - A0 on the HELD-OUT family gain >= -0.02 (no cross-family overfitting cost)"
+ },
+ "kernel_digest": "03506be1dcddfcb28398ca5b578ad996d4c368648413f270a4a893c6be238c02",
+ "parent_policy": "clade",
+ "prereg_sha256": "b36d851de8d8008d18c8bf2e1f04d32d176dbe2e935c19aaa97c245fbb7ec127",
+ "profile": "smoke",
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7
+ ],
+ "world_secret_label": "study2-synthetic-world-v1",
+ "yield": {
+  "k_cycles": 2,
+  "n_eval": 32,
+  "n_starts": 1,
+  "seeds": 2
+ }
+}

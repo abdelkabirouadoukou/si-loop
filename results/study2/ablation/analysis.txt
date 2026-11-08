@@ -1,0 +1,18 @@
+PRE-REGISTERED ANALYSIS  (prereg sha256 b36d851de8d8008d...)
+
+arm   n  gain_sel  gain_held  accepts    tokens meta_acc  acc1/acc2
+A0    8    +0.178     +0.000      1.5     12534      0.0 0.15/0.10
+A1    8    +0.302     +0.000      1.8     29098      0.0 0.04/0.25
+A2    8    -0.017     +0.000      2.6     11776      0.0 0.29/0.15
+A3    8    +0.242     +0.000      1.0     12429      0.0 0.06/0.10
+
+H1: A1-A0 on gain_selection: mean +0.124  95% CI [-0.076, +0.319]  p(one-sided)=0.1523  Holm p=0.3047  n=8   <- A1 - A0 > 0 on final selection gain (evolving the improver adds improvement beyond a frozen improver)
+H2: A0-A2 on gain_selection: mean +0.195  95% CI [+0.120, +0.272]  p(one-sided)=0.0039  Holm p=0.0117  n=8   <- A0 - A2 > 0 (informed search + gate beats random patches + gate: the gate alone is not the effect)
+H3: A0-A3 on gain_selection: mean -0.064  95% CI [-0.177, +0.066]  p(one-sided)=0.8438  Holm p=0.8438  n=8   <- A0 - A3 > 0 (iterating and accumulating beats compute-matched sampling of single patches)
+H4: A1-A0 on gain_heldout: mean +0.000  95% CI [+0.000, +0.000]  (non-regression margin -0.02: OK)
+
+halted / tampered / flagged runs: none
+
+VERDICT
+  H1 NOT supported at the pre-registered level: report ITERATIVE improvement only (see A0 vs A2/A3).
+  (Interpretation rules are fixed in prereg.json; do not change them after seeing results.)

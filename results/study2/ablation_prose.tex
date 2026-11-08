@@ -1,0 +1,27 @@
+\paragraph{Results.} Table~\ref{tab:abl} and Table~\ref{tab:tests} are generated from the raw per-run files. No run halted, tripped a security flag or broke the ledger (\BadRuns{} such runs). The mean final gain on the selection families over the frozen cycle-0 anchor was \GainAZero{} (A0), \GainAOne{} (A1), \GainATwo{} (A2) and \GainAThree{} (A3).
+
+\begin{table}[t]
+\centering\small
+\caption{Arms, mean $\pm$ SD over seeds. Gain is the final pass rate minus the anchor's, on fresh batches shared by all arms. Tokens include yield tests.}
+\label{tab:abl}
+\input{results/study2/tab_ablation.tex}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Pre-registered contrasts (paired by seed; one-sided sign-flip p; Holm over H1--H3).}
+\label{tab:tests}
+\input{results/study2/tab_tests.tex}
+\end{table}
+
+\begin{itemize}\setlength\itemsep{2pt}
+\item \textbf{H2 supported} (A0$-$A2 $=$ \HTwoMean{}, Holm $p=$ \HTwoHolm). Random patches behind the same gate did not improve the agent (\GainATwo{}), while informed proposals behind the same gate did. The gain is therefore not an artefact of the gate or of the evaluation. The gate also kept the random arm from degrading: its mean loss was small, but not zero (below).
+\item \textbf{H1 not supported} (A1$-$A0 $=$ \HOneMean{}, 95\% CI $[$\HOneLo{}, \HOneHi{}$]$, Holm $p=$ \HOneHolm). The point estimate favours A1, but the interval includes zero. More importantly, \emph{no improver patch was accepted in any A1 run}: 13 improver patches were proposed across the eight runs and none was accepted. A1 and A0 therefore ran the same improver policy except that A1 spent about $15\%$ of its proposals on (rejected) policy edits. The positive difference reflects run-to-run variation of the proposal stream (A1's per-seed gains are bimodal), not recursion. This pilot cannot say anything about whether improving the improver helps.
+\item \textbf{H3 not supported} (A0$-$A3 $=$ \HThreeMean{}, Holm $p=$ \HThreeHolm). Compute-matched best-of-N from the anchor (\GainAThree{}) was at least as good as iterating and accumulating (\GainAZero{}). In this small world each useful fix is independent, so iteration adds nothing over sampling. A1 used about $2.3\times$ the tokens of the other arms because of yield tests (Table~\ref{tab:abl}); A1 vs.\ A3 was not pre-registered and is not tested.
+\item \textbf{H4 is uninformative.} The held-out gain was \HeldAZero{} in every arm because the toy improver never edits the interpreter family; the non-inferiority margin held trivially. The held-out audit machinery is exercised in the end-to-end run (Section~\ref{sec:demo}), but this ablation provides no evidence about cross-family overfitting.
+\end{itemize}
+
+\paragraph{The random arm and the margin budget.} A2 accepted $2.6$ patches per run on average. Its final gain ranged from $-0.052$ to $0.000$ (mean \GainATwo{}); the margin spent per run ranged from $0.005$ to $0.020$ against a budget of $0.03$. The worst run lost $0.052$ on the final batch while having spent only $0.005$.
+That is a counter-example to reading the budget as a hard bound on true loss: the charge is a lower-bound-based estimate, the final batch ($96$ problems) is itself noisy (standard error roughly $0.02$), and the proposition holds only when the per-step bounds hold. What the data do support is narrower: with the budget and floor in place, a policy that proposes random edits lost about two points on average and no more than five in the worst of eight runs, and never gained.
+
+\paragraph{What this pilot does and does not show.} It shows that the harness runs end to end under pre-registration, that the gate separates informed from random search (H2), and that the controls (A2, A3) are needed: without A3, the gain of A0 or A1 would have been read as evidence for iteration. It does not show recursive self-improvement; the one test of it (H1) is empty because the improver never changed. With \NSeeds{} seeds the smallest attainable one-sided p-value is \MinP{}, so only large, consistent effects could be detected. A real study needs more seeds, a world in which improver edits can matter, and an LLM meta-agent.

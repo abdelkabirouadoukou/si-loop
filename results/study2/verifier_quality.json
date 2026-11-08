@@ -1,0 +1,233 @@
+{
+ "mutants": 248,
+ "killed": 215,
+ "kill_rate": 0.8669,
+ "kill_rate_adjusted": 0.9954,
+ "likely_equivalent": 32,
+ "kills_by_tier": {
+  "small": 203,
+  "fuzz": 211,
+  "meta": 23
+ },
+ "kills_only_this_tier": {
+  "small": 4,
+  "fuzz": 12
+ },
+ "reference_false_fail": 0,
+ "per_kind": {
+  "dedupe": {
+   "mutants": 30,
+   "killed": 24,
+   "kill_rate": 0.8
+  },
+  "rotate": {
+   "mutants": 30,
+   "killed": 21,
+   "kill_rate": 0.7
+  },
+  "prefix_mod": {
+   "mutants": 20,
+   "killed": 19,
+   "kill_rate": 0.95
+  },
+  "kth_smallest": {
+   "mutants": 22,
+   "killed": 22,
+   "kill_rate": 1.0
+  },
+  "bracket_balance": {
+   "mutants": 30,
+   "killed": 30,
+   "kill_rate": 1.0
+  },
+  "min_stack": {
+   "mutants": 30,
+   "killed": 27,
+   "kill_rate": 0.9
+  },
+  "lru_cache": {
+   "mutants": 26,
+   "killed": 25,
+   "kill_rate": 0.9615
+  },
+  "arith_eval": {
+   "mutants": 30,
+   "killed": 27,
+   "kill_rate": 0.9
+  },
+  "rpn_eval": {
+   "mutants": 30,
+   "killed": 20,
+   "kill_rate": 0.6667
+  }
+ },
+ "survivors": [
+  {
+   "kind": "dedupe",
+   "mutant": "const@3",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "dedupe",
+   "mutant": "const@0",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "dedupe",
+   "mutant": "const@1",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "dedupe",
+   "mutant": "const@1",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "dedupe",
+   "mutant": "const@3",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "dedupe",
+   "mutant": "const@0",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "ret@1",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "del@3",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "const@2",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "bin@1",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "const@1",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "bin@2",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "bin@3",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "del@4",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rotate",
+   "mutant": "ret@2",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "prefix_mod",
+   "mutant": "bin@0",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "min_stack",
+   "mutant": "del@11",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "min_stack",
+   "mutant": "del@6",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "min_stack",
+   "mutant": "del@11",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "lru_cache",
+   "mutant": "del@5",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "arith_eval",
+   "mutant": "const@16",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "arith_eval",
+   "mutant": "del@16",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "arith_eval",
+   "mutant": "del@10",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "del@1",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "cmp@8",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "const@12",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "const@11",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "bin@4",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "del@2",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "const@0",
+   "likely_equivalent": false
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "del@1",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "cmp@7",
+   "likely_equivalent": true
+  },
+  {
+   "kind": "rpn_eval",
+   "mutant": "cmp@6",
+   "likely_equivalent": true
+  }
+ ],
+ "honeypot_detects": true,
+ "ok": true
+}

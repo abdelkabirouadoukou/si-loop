@@ -1,2 +1,4 @@
+# Study 1: torch.  Study 2 core: standard library only.
 torch>=2.2          # Study 1 (si_loop_toy.py)
-pytest>=7.4         # Study 2 kernel tests and sandboxed self-tests
+pytest>=7.4         # Study 2 kernel tests and the hidden-pytest verifier
+matplotlib>=3.7     # optional: only for results/study2/make_paper_numbers.py (figures)

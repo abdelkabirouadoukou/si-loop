@@ -1,0 +1,65 @@
+{
+ "n": 200,
+ "p": 0.5,
+ "noise": 0.1,
+ "trials": 2000,
+ "false_accept": [
+  {
+   "p_improve_min": 0.8,
+   "single": 0.1775,
+   "two_stage": 0.0315
+  },
+  {
+   "p_improve_min": 0.9,
+   "single": 0.088,
+   "two_stage": 0.016
+  },
+  {
+   "p_improve_min": 0.95,
+   "single": 0.0435,
+   "two_stage": 0.009
+  },
+  {
+   "p_improve_min": 0.975,
+   "single": 0.0215,
+   "two_stage": 0.004
+  },
+  {
+   "p_improve_min": 0.99,
+   "single": 0.008,
+   "two_stage": 0.0015
+  }
+ ],
+ "power": [
+  {
+   "lift": 0.0,
+   "single": 0.051,
+   "two_stage": 0.01
+  },
+  {
+   "lift": 0.02,
+   "single": 0.218,
+   "two_stage": 0.117
+  },
+  {
+   "lift": 0.04,
+   "single": 0.519,
+   "two_stage": 0.398
+  },
+  {
+   "lift": 0.06,
+   "single": 0.805,
+   "two_stage": 0.752
+  },
+  {
+   "lift": 0.08,
+   "single": 0.952,
+   "two_stage": 0.936
+  },
+  {
+   "lift": 0.1,
+   "single": 0.995,
+   "two_stage": 0.99
+  }
+ ]
+}

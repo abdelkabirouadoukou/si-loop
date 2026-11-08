@@ -1,0 +1,39 @@
+{
+ "ledger_ok": true,
+ "records": 36,
+ "cycles": 14,
+ "verdicts": {
+  "accept": 7,
+  "reject": 5,
+  "stepping_stone": 2
+ },
+ "reject_reasons": {
+  "selftest": 1,
+  "no_gain": 1,
+  "none": 2,
+  "parse": 3
+ },
+ "audits": [
+  {
+   "cycle": 4,
+   "kind": "anchor",
+   "action": "ok"
+  },
+  {
+   "cycle": 9,
+   "kind": "anchor",
+   "action": "ok"
+  },
+  {
+   "cycle": 9,
+   "kind": "heldout",
+   "action": "pause",
+   "reason": "cross-family generalisation gap above alarm threshold"
+  }
+ ],
+ "security_flags": 0,
+ "trips": [
+  "generalisation_gap"
+ ],
+ "tokens": 24155.0
+}

@@ -849,6 +849,9 @@ class Orchestrator:
 
             # 2. apply atomically, static safety scan, commit, verify the diff is exactly the proposal
             hunks = apply_proposal(wt, proposal)
+            if self.repo.is_clean(wt):
+                from kernel.patching import PatchError
+                raise PatchError("patch makes no change to the code")
             if (errs := self.validator.validate_tree(wt, proposal, baseline)):
                 raise GuardViolation("; ".join(errs))
             sha = self.repo.commit_all(wt, f"[{proposal.id}] {proposal.hypothesis[:72]}")
