@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from kernel.orchestrator import EvalResult, Sandbox, Verifier
-from study2.tasks import TASKS, make_cases, tasks_for
+from study2.tasks import TASKS, make_cases, make_cases_v2, tasks_for
 
 WORKER = Path(__file__).resolve().parent / "_worker.py"
 HIDDEN_TEST = '''import json
@@ -46,10 +46,14 @@ def test_problem(pid):
 
 
 class PytestVerifier(Verifier):
-    def __init__(self, secret: bytes, sandbox: Sandbox, cases_per_problem: int = 6, case_timeout: float = 2.0):
+    def __init__(self, secret: bytes, sandbox: Sandbox, cases_per_problem: int = 6, case_timeout: float = 2.0,
+                 suite: str = "v1"):
         if len(secret) < 16:
             raise ValueError("secret must be at least 16 bytes")
+        if suite not in ("v1", "v2"):
+            raise ValueError("suite must be 'v1' (Study 2, unchanged) or 'v2' (Study 3 replicates)")
         self.secret, self.sandbox, self.k, self.case_timeout = secret, sandbox, cases_per_problem, case_timeout
+        self.suite = suite
 
     # ---- problem ids and cases (judge-side only)
     def _digest(self, text: str) -> bytes:
@@ -67,7 +71,7 @@ class PytestVerifier(Verifier):
 
     def cases_for(self, pid: str) -> dict:
         task, seed = self.problem(pid)
-        args = make_cases(task, seed, self.k)
+        args = (make_cases_v2 if self.suite == "v2" else make_cases)(task, seed, self.k)
         return {"task": task.name, "family": task.family, "args": args, "expected": [task.oracle(*a) for a in args]}
 
     # ---- evaluation
@@ -121,7 +125,11 @@ class PytestVerifier(Verifier):
 
     @staticmethod
     def _run_pytest(jd: Path, batch: list, wall_s: float) -> dict:
-        env = {"PATH": os.environ.get("PATH", ""), "PYTHONHASHSEED": "0", "HOME": str(jd), "LANG": "C.UTF-8"}
+        # HOME is replaced for isolation, but the per-user site folder is derived from HOME (macOS: ~/Library/Python),
+        # so pytest installed there would vanish and every candidate would fail closed. Pass our own site folders.
+        site = [p for p in sys.path if p.endswith(("site-packages", "dist-packages"))]
+        env = {"PATH": os.environ.get("PATH", ""), "PYTHONHASHSEED": "0", "HOME": str(jd), "LANG": "C.UTF-8",
+               "PYTHONPATH": os.pathsep.join(site)}
         try:
             subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "--junitxml=out.xml",
                             "test_hidden.py"], cwd=jd, env=env, capture_output=True, timeout=wall_s)

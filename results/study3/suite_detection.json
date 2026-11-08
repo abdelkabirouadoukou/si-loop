@@ -1,0 +1,38 @@
+{
+ "defect": "two_sum tie-break (D2)",
+ "seed": 20261108,
+ "rows": [
+  {
+   "variant": "loop_by_second",
+   "suite": "v1",
+   "cases_per_problem": 6,
+   "problems": 2000,
+   "caught": 290,
+   "rate": 0.145
+  },
+  {
+   "variant": "loop_by_second",
+   "suite": "v2",
+   "cases_per_problem": 12,
+   "problems": 2000,
+   "caught": 1393,
+   "rate": 0.6965
+  },
+  {
+   "variant": "hash_map_one_pass",
+   "suite": "v1",
+   "cases_per_problem": 6,
+   "problems": 2000,
+   "caught": 712,
+   "rate": 0.356
+  },
+  {
+   "variant": "hash_map_one_pass",
+   "suite": "v2",
+   "cases_per_problem": 12,
+   "problems": 2000,
+   "caught": 1994,
+   "rate": 0.997
+  }
+ ]
+}

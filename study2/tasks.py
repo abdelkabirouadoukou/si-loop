@@ -284,3 +284,28 @@ def make_cases(task: Task, seed: int, n: int = 6) -> list:
     """n argument lists; the first half are edge-biased. Deterministic in (task, seed)."""
     r = random.Random(seed)
     return [task.gen(r, i < n // 2) for i in range(n)]
+
+
+# ---------------------------------------------------------------- suite v2 (Study 3 replicates only)
+# v1 (make_cases above) is what Study 2 used and is NOT changed. v2 adds targeted cases where the
+# docstring's tie-break rules matter. Found by auditing the Study 3 seed-3 patches (see DEVIATIONS.md, D2).
+def _g_two_ties(r, edge):
+    """Small values with forced duplicates, so several pairs can match and the tie-break rule decides."""
+    xs = [r.randint(0, 3) for _ in range(r.randint(4, 8))]
+    a, b = sorted(r.sample(range(len(xs)), 2))
+    return [xs, xs[a] + xs[b]]
+
+
+EXTRA_V2 = {"two_sum": _g_two_ties}
+EXTRA_V2_PER_TASK = 12   # catches the two_sum tie-break bug on ~71% of problems (v1: ~14%)
+
+
+def make_cases_v2(task: Task, seed: int, n: int = 12) -> list:
+    """Like make_cases, but with n cases total, and EXTRA_V2_PER_TASK targeted cases appended when the
+    task has one. Deterministic in (task, seed). Study 2 never calls this."""
+    base = make_cases(task, seed, n)
+    gen = EXTRA_V2.get(task.name)
+    if gen is None:
+        return base
+    r = random.Random(f"v2|{seed}")
+    return base + [gen(r, False) for _ in range(EXTRA_V2_PER_TASK)]

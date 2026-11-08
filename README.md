@@ -90,6 +90,43 @@ pre-register your ablation plan (section [Experiments](#experiments)), and use c
 
 ---
 
+## Study 3: live LLM meta-agent
+
+`kernel/llm_meta.py` puts a real model behind the `MetaAgent` interface. `run_study3_live.py` runs it
+through the same two-stage judge, hash-chained ledger and circuit breakers as Study 2.
+
+```bash
+export GROQ_API_KEY=...            # or OPENAI_API_KEY; read from the environment only, never stored
+python run_study3_live.py --probe  # one LLM call: checks the reply parses (cheapest test)
+python run_study3_live.py --cycles 3 --out runs/study3_live
+python run_study3_live.py --prereg # regenerate results/study3/prereg.json (commit it BEFORE live runs)
+```
+
+Defaults: Groq's OpenAI-compatible endpoint (`https://api.groq.com/openai/v1`), model
+`openai/gpt-oss-120b`, arm A0 (solver patches only, `agent/lib.py`). Stdlib HTTP only, no SDK.
+
+What protects the run:
+
+- **Key handling.** The key is read from the environment. It is never written to a file, log, history line,
+  prompt or error message (provider error text is scrubbed). `describe()` shows only the model and URL.
+- **Untrusted text.** Code comments are stripped. Repo text and lessons are sanitised (bidi and control
+  characters, chat-template tokens, role labels) and sent inside `<untrusted_data>` blocks. This reduces
+  the injection surface; the kernel gate, not the prompt, is the security boundary.
+- **Read-only workspace.** `WorkspaceReader` never writes, never follows symlinks, never leaves `agent/`,
+  and never shows tests to the model.
+- **Write-ahead history.** `ProposalHistory` (JSONL, fsynced) records an intent before the kernel acts and an
+  outcome after. The model sees only coarse outcomes (verdict and error type), never counts or per-family numbers.
+- **Strict parsing.** Replies go through `kernel.patching.parse_proposal`. At most 8 hunks (`MAX_HUNKS`).
+  Then the kernel's own checks run: path policy, `scan_python`, atomic apply, tamper guard, self-tests, sealed judge.
+- **Caps.** Calls are paced (`--min-interval`), capped per cycle (`--max-calls-per-cycle`), capped per run
+  (`--run-token-cap`) and charged to the cycle token budget. Rate-limit responses (429/5xx) back off and honour
+  `Retry-After`. A network policy denial (403/407) fails at once.
+
+Not in this build: arm A1 (yield tests on `agent/meta/**`) and arm A3 (compute-matched best-of-N) are Phase 4.
+The seed repo has no `agent/meta/`, so the yield gate is not wired in A0. `LLMMetaAgent` refuses other arms.
+
+Tests use a fake OpenAI-compatible server on localhost (`tests/test_study3.py`). No test calls a real API.
+
 ## Architecture and trust boundaries
 
 ```
@@ -187,7 +224,12 @@ study2/            REFERENCE implementation (hidden pytest, local problem suite,
 run_study2.py      check | demo | run | report
 run_ablations.py   prereg | run | analyze | all    (A0-A3)
 paper_study2.tex   Study 2 paper          results/study2/   calibration and verifier-quality data
-tests/             80 tests
+run_study3_live.py live LLM runner        study3_summary.py per-run summary and verdicts
+paper_study3.tex   Study 3 paper          results/study3/   pre-registration, deviations D1/D2, seed data,
+                                                            suite detection, scripts that make every paper number
+study4/            Phase 4 scaffolding (NOT implemented): design draft and locked-prereg guard
+run_study4.py      Study 4 entry point (refuses to run without a locked pre-registration)
+tests/             131 tests
 ```
 
 ---

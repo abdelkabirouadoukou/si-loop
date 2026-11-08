@@ -391,7 +391,7 @@ class Gate:
     On the SAME sealed problems, b = problems the patch fixed, c = problems it broke.
       delta = (b - c) / n,  se = sqrt(b + c - (b - c)^2 / n) / n,  lower = delta - z * se
     accept          : lower >= -eps  AND delta > 0 AND p_better(b, c) >= p_improve_min
-                      (or non-inferior, delta >= 0 and measurably cheaper/smaller)
+                      (or non-inferior, delta >= 0 and at least 5% fewer lines of code)
     stepping_stone  : non-inferior and behaviourally novel (kept in the archive, not promoted)
     reject          : otherwise
     Utility (size/tokens) never outvotes correctness: non-inferiority is a hard prerequisite."""
@@ -413,8 +413,11 @@ class Gate:
         lower = delta - self.cfg.z_one_sided * se
         p_imp = p_better(b, c)
         pm, cm = parent.metrics, cand.metrics
-        cheaper = (cm.get("agent_loc", math.inf) <= 0.95 * pm.get("agent_loc", 0.0)
-                   or cm.get("tokens", math.inf) <= 0.90 * pm.get("tokens", 0.0))
+        # Utility path: "cheaper" means at least 5% fewer lines of code. The token metric is NOT used:
+        # the reference verifier reports tokens = 0 for every candidate, so a token test is always true
+        # (see the deviation note in results/study3/DEVIATIONS.md).
+        cheaper = (pm.get("agent_loc", 0.0) > 0
+                   and cm.get("agent_loc", math.inf) <= 0.95 * pm.get("agent_loc", 0.0))
         why = [f"b={b} c={c} n={n}", f"delta={delta:+.3f} lower={lower:+.3f} p_better={p_imp:.3f}"]
 
         def dec(v, extra, path=""):
