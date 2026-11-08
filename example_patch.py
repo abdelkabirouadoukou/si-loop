@@ -4,6 +4,9 @@
   2. EVIL       kernel tampering + sockets   -> BLOCKED by static validation (nothing applied)
   3. DEGRADING  patch that lowers pass@1     -> REJECTED by the paired gate, ROLLED BACK
 
+Goes through the full two-stage judge (screen on batch A -> confirm on independent batch B), the
+hash-chained ledger and the coarse-only feedback path. (See run_ablations.py for the sealed verifier.)
+
 Real: git repo + worktrees, sandbox (rlimits, subprocess self-tests), validator, AST applier,
 gate, archive, Mom Center, Shapley credit, ledger. Simulated: the sealed Verifier (latent
 difficulty + noise, paired across parent/candidate) and the LLM meta-agent (scripted proposals).
@@ -144,8 +147,9 @@ def main() -> int:
             '''))
         selftest = ("python", str(runner))
 
-    cfg = Config(repo_dir=repo_dir, runs_dir=runs, n_selection=200, n_credit=100, families=("algorithmic",),
-                 p_exploit=1.0, selftest_cmd=selftest)
+    cfg = Config(repo_dir=repo_dir, runs_dir=runs, n_selection=200, n_confirm=200, n_credit=100,
+                 families=("algorithmic",), p_exploit=1.0, selftest_cmd=selftest,
+                 anchor_every=0, heldout_every=0, gc_every=0, parent_policy="archive")
     repo = GitRepo(repo_dir, tmp / "worktrees")
     base = repo.init("seed agent")
 

@@ -4,42 +4,44 @@
 
 ## SI-Loop v2 (Study 2)
 
-A self-modifying agent loop with a hardened, sealed judge. An autonomous meta-agent proposes
-structural patches to its own Python codebase, prompts and strategies. Every patch is applied in an
-isolated git worktree, statically validated, tested, and either **promoted** or **atomically
-rolled back** based on a paired statistical gate over hidden pytest outcomes.
+A guarded self-modifying agent loop. A meta-agent proposes patches to its own code; each patch is applied in an
+isolated git worktree, statically validated, judged by a sealed verifier and a statistical gate, and then **promoted
+or atomically rolled back**. This version adds the defences against the six hard problems of guarded recursive
+self-improvement (RSI):
 
-v2 moves beyond Study 1 (synthetic few-shot regression, see `paper.pdf` in the Study 1 repo).
-Study 1's judge was over-conservative (about 73% of rounds rejected; `no_judge` won), so the
-v2 gate is a calibrated paired non-inferiority test with an explicit A/A false-accept target.
+| Problem | What is built in | Where |
+|---|---|---|
+| Creeping degradation (many "non-inferior" accepts stack up) | Cycle-0 **anchor**, finite **margin budget** for utility-path accepts (refilled only by *new proven gain*), periodic **anchor/peak audits** with rollback | `kernel/anchor.py` |
+| Adaptive overfitting | **Two-stage** judge (screen on batch A, strict gate on independent batch B), SPRT / e-value early stopping, e-LOND online FDR, **coarse-only** agent feedback, **held-out family** (interpreter) never used in selection, Thresholdout-style noisy audit | `kernel/pipeline.py`, `kernel/stats.py`, `kernel/anchor.py` |
+| Is the *improver* really improving? | `yield_test`: improver patches judged by **yield** vs the parent policy and vs frozen reference **M0** from identical starts; **clade** parent selection; **operator bandit** with per-tag EMA | `kernel/yield_test.py`, `clade.py`, `bandit.py` |
+| Weak verification | Sealed families, **3 tiers** (small-scope exhaustive, fuzz, metamorphic), **honeypots** (impossible tasks, decoy oracle files, canary, audit hook), **mutation kill-rate** harness | `kernel/families.py`, `verifier.py`, `_harness.py`, `mutation.py` |
+| Long-term autonomy | **Hash-chained ledger**, **circuit breakers** (accept-rate anomaly, LOC explosion, cost spike, sandbox-escape attempts, audit regressions), worktree **disk GC**, **model/kernel fingerprint** halt, heartbeat watchdog, HALT/STOP latch files | `kernel/ledger.py`, `breakers.py`, `hygiene.py` |
+| Measuring true RSI | Pre-registered ablations **A0-A3**, paired by seed, Holm-corrected | `run_ablations.py` |
 
-> **Status:** the kernel (patching, git, sandbox, gate, calibration, archive, Mom Center,
-> Shapley credit, ledger) is implemented and tested. The two experiment-specific components,
-> the **sealed `Verifier`** (problem families + hidden pytest) and the **LLM `MetaAgent`**, are
-> abstract interfaces you must implement for Study 2. `example_patch.py` uses a simulated
-> verifier and scripted proposals, so it demonstrates the kernel, **not** any claim about
-> self-improvement.
+> **Honest scope.** `kernel/world.py` is a *synthetic* world: the "meta-agent" is a mutation engine (`MutationMetaAgent`),
+> not an LLM. It tests the machinery (gate, audits, verifier, ledger, ablations), and **makes no claim about LLM
+> self-improvement**. To use a real LLM, implement the `MetaAgent` interface (`propose(worktree, parent_sha, broadcast, budget)`).
+> The sandbox in local mode is **not a security boundary**; use container mode for untrusted code (container mode is
+> untested here). Honeypots are tripwires, not proofs of safety.
 
 ## Layout
 
 ```
 kernel/                  IMMUTABLE to the agent (digest-checked every cycle; mount :ro in containers)
   patching.py            proposal parser, static validator, test ratchet, AST symbol replacer
-  orchestrator.py        loop, git worktrees, sandbox, gate, A/A calibration, archive,
-                         Mom Center, Shapley attribution, ledger, crash recovery, CLI
-example_patch.py         3-scenario end-to-end demo (good / evil / degrading)
-tests/test_kernel.py     kernel test-suite
-requirements.txt
-```
-
-At run time you add (outside this repo or on separate volumes):
-
-```
-agent_repo/agent/        the ONLY subtree the meta-agent may change (its own git repo, branch `main`)
-  tests/                 the agent's self-tests: non-regression only, protected by a ratchet
-sealed/                  problem generators, oracles, hidden pytest, secret seed (never mounted
-                         into agent processes)
-runs/<exp>/              ledger.jsonl, archive.json, mom.db, worktrees/
+  orchestrator.py        loop, git worktrees, sandbox, calibration CLI, audits, halting
+  pipeline.py            TwoStageJudge: screen(A) -> confirm(B), early stopping, margin budget, FDR
+  stats.py               exact tests, e-values, e-LOND, sequential monitor, bootstrap, sign-flip
+  anchor.py              anchor, margin budget, anchor/peak audit, held-out audit
+  families.py verifier.py _harness.py   sealed problem families + 3-tier verifier + honeypots
+  mutation.py            verifier quality (mutation kill rate)
+  improver.py seed_agent.py             synthetic improver (policy, templates) and seed agent
+  yield_test.py clade.py bandit.py      meta-level evaluation and parent/operator selection
+  ledger.py breakers.py hygiene.py      tamper-evident log, circuit breakers, GC, fingerprint, watchdog
+  world.py               wires a synthetic world (profiles tiny / smoke / full)
+run_ablations.py         pre-registered A0-A3 experiment runner
+example_patch.py         3-scenario kernel demo (good / evil / degrading)
+tests/                   68 tests
 ```
 
 ## Trust boundaries
@@ -47,28 +49,14 @@ runs/<exp>/              ledger.jsonl, archive.json, mom.db, worktrees/
 | Zone | May write | Notes |
 |---|---|---|
 | Kernel | nobody at run time | `KernelGuard` hashes `kernel/*.py`; any change aborts the run |
-| `agent/**` | the meta-agent, **via validated proposals only** | no direct writes: a dirty worktree after `propose()` is rejected |
-| Sealed | the experimenter | candidate code never reads it; the agent sees only aggregate EvalResult-derived signals |
+| `agent/**` | the meta-agent, via validated proposals only | a dirty worktree after `propose()` is rejected |
+| Sealed verifier | the experimenter | problem ids are HMACs of a secret; oracle and compare run in the judge, never in the agent's process |
+| Held-out family | nobody during selection | never drawn by selection / confirm / credit / anchor / yield splits; results go to the ledger only |
+| Agent feedback | kernel | only `{accept, stepping_stone, reject}` + a brief error type; no counts, no per-family numbers |
 
-Defence in depth for each patch:
-
-1. **Strict parse** (`parse_proposal`): schema, size, tag and key whitelists.
-2. **Path policy**: only `agent/**`, suffixes `.py .md .txt .yaml`, no traversal, no `conftest.py`, no dotfiles.
-3. **AST scan** of every changed `.py`: no `socket`, `subprocess`, `ctypes`, `multiprocessing`, `shutil`,
-   `importlib`, `pickle`, `sys`, `kernel`/`sealed` imports; no `eval`, `exec`, `compile`, `open`, `__import__`,
-   `globals`, `setattr`, `delattr`; no dangerous `os.*` (including aliases and `from os import ...`);
-   no `getattr` with a computed name; no dunder escape routes; no relative imports.
-4. **Test ratchet**: the set of agent self-test ids may only grow; `skip`, `xfail`, `importorskip`,
-   `pytest_plugins`, `pytestmark` are banned in tests.
-5. **Exact, atomic application**: `replace_symbol` replaces exactly one same-named definition by AST span;
-   all edits are staged in memory and written only if every op succeeds.
-6. **Diff audit**: after commit, the changed files must equal the files named in the proposal.
-7. **Sandbox**: self-tests run in a subprocess with rlimits (address space, CPU, file size), a scrubbed
-   environment, its own session, and process-group SIGKILL on timeout. Container mode adds
-   `--network none`, read-only root, memory/cpu/pids caps.
-
-The AST scan is a first filter, **not a security boundary**. For real runs use container mode
-(`Config.container_image`) and give the sealed side no network or filesystem path from the agent.
+Patch defence in depth (parse, path policy, AST scan, test ratchet, atomic apply, diff audit, sandbox) is unchanged
+from v1 and is still a first filter, not a security boundary. Improver patches (all hunks under `agent/meta/`) go to
+the yield gate; patches mixing meta and solver code are rejected.
 
 ## The non-inferiority gate
 
@@ -100,66 +88,89 @@ the target and rerun this for your real `n` and baseline pass rate before Study 
 noise model is an assumption; estimate the real run-to-run noise from repeated evaluations of an
 unchanged agent.
 
-## Other components
+### v2 additions to the gate
 
-- **Archive** (quality-diversity): stores stepping stones with a behaviour descriptor (per-family pass profile,
-  agent size, tokens); parents are the champion with probability `p_exploit`, otherwise sampled by
-  performance x novelty / visits.
-- **Mom Center**: SQLite entries (patch, failure, credit) with outcome-based Beta trust, TTL, and a capacity-limited
-  broadcast using salience plus MMR diversity. All payloads are sanitised and marked `untrusted`.
-- **Shapley credit**: exact over hunks up to `credit_max_exact` (default 6), else seeded Monte Carlo, on a separate
-  sealed *credit* split; non-applicable coalitions score 0.
-- **Ledger**: fsynced write-ahead log; `begin` without `end` triggers cleanup on the next start (`recover()`).
-- **Circuit breaker**: after `max_consecutive_failures` failed cycles the loop cools off.
+- **Two stages.** Stage 1 (lenient, `screen_p_improve=0.80`) runs in chunks with an anytime-valid e-value *harm* stop
+  and an SPRT *futility* stop. Stage 2 applies the strict gate on batch B **alone** (B is independent, so the winner's
+  curse is removed). False-accept rates multiply: calibrated at about 1.5% (n=200/200, p_improve 0.95) vs 3.6% single stage.
+- **Utility path** (smaller / cheaper code with no proven gain) spends from a finite **margin budget**. Each charge is
+  `max(0, -lower)` with a floor (`margin_min_charge=0.005`). Only a *new* high-water mark of proven gain over the anchor
+  refills it. This bounds creep; it does not remove it, so the anchor audit is the backstop.
+- **Anchor audit** every `anchor_every` cycles on fresh batches: champion vs anchor and vs its own peak; rollback on regression.
+- **Held-out audit**: cross-family gap = selection delta - held-out delta, with noisy decisions; rollback or pause on a large gap.
 
-## Quickstart
+## Quickstart and exact CLI
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m pytest -q tests          # kernel test-suite
-python example_patch.py            # 3-scenario demo; exit code 0 iff all checks pass
-python -m kernel.orchestrator calibrate --n 200 --p 0.5
+pip install -r requirements.txt            # torch is needed only for Study 1
+python -m pytest -q tests                  # full test suite (about 25 s)
+python example_patch.py                    # kernel demo; exit code 0 iff all checks pass
 ```
 
-Requirements: Python >= 3.10, git >= 2.30, POSIX OS (Linux/macOS) for the local sandbox.
-`git` is driven through its CLI, so no git Python library is needed.
+**Calibration** (do this for your real n and baseline pass rate before any real run):
 
-## Wiring up Study 2
-
-```python
-from kernel.orchestrator import *
-
-class MyVerifier(Verifier):      # sealed families + hidden pytest behind an RPC solve() proxy
-    def draw_batch(self, cycle, n, split="selection"): ...
-    def evaluate(self, worktree, batch, wall_s): ...      # -> EvalResult(passes, metrics, family_profile)
-
-class MyMeta(MetaAgent):         # LLM tool-use; read-only access to the worktree
-    def propose(self, worktree, parent_sha, broadcast, budget): ...   # -> parse_proposal(model_output)
-
-cfg   = Config(repo_dir="agent_repo", runs_dir="runs/study2", families=("algorithmic", "ds", "compiler"),
-               container_image="si-sandbox:latest")
-repo  = GitRepo(cfg.repo_dir, cfg.runs_dir / "worktrees")
-orch  = Orchestrator(cfg, repo, Sandbox(cfg), MyVerifier(), MyMeta(),
-                     Archive(cfg.runs_dir / "archive.json", cfg.seed), ShapleyAttributor(cfg, repo, MyVerifier()),
-                     MomCenter(cfg.runs_dir / "mom.db"), KernelGuard("kernel"))
-orch.run(max_cycles=1000, workers=2)
+```bash
+python -m kernel.orchestrator calibrate --n 200 --p 0.5 --noise 0.1 --target 0.05
+python -m kernel.orchestrator calibrate --n 200 --p 0.5 --noise 0.1 --target 0.05 \
+       --two-stage --n-confirm 200 --screen-p 0.80
 ```
 
-Your verifier must run candidate code in a separate sandboxed process, keep the oracle and tests out of
-its reach, and return nothing but `EvalResult`.
+**Verifier quality** (mutation kill rate, honeypot self-test; exit code 1 if unhealthy):
+
+```bash
+python -m kernel.mutation --per-kind 30 --instances 2 --out runs/verifier_quality.json
+```
+
+**Yield test** of one improver policy against a baseline (expensive; start with `--profile tiny`):
+
+```bash
+python -m kernel.yield_test --policy '{"w_adopt": 8.0}' --profile smoke --starts 2 --seeds 3 --k 5
+```
+
+**Ablation arms** (A0 frozen improver, A1 full recursive, A2 random-patch control, A3 compute-matched best-of-N):
+
+```bash
+python run_ablations.py prereg --out runs/abl --arms A0 A1 A2 A3 --seeds 10 --cycles 60 --profile full
+git add runs/abl/prereg.json runs/abl/prereg.sha256 && git commit -m "preregister ablations"   # BEFORE running
+python run_ablations.py run     --out runs/abl          # resumable: finished runs are skipped
+python run_ablations.py analyze --out runs/abl          # writes runs/abl/analysis.txt
+python run_ablations.py all     --out runs/abl          # run + analyze
+```
+
+`run_ablations.py` refuses to run if `prereg.json` was edited or the kernel digest changed. The run (seed) is the unit
+of analysis. Tests: H1 = A1-A0, H2 = A0-A2, H3 = A0-A3 (one-sided sign-flip, Holm-corrected), H4 = held-out
+non-regression. Anything short of H1 is reported as *iterative* improvement only. Use `--profile tiny` for a smoke check
+only; its numbers mean nothing.
+
+**Operations:**
+
+```bash
+python -m kernel.hygiene verify-ledger --run-dir runs/abl/A1_s0/runs      # recompute the hash chain
+python -m kernel.hygiene watchdog --run-dir runs/abl/A1_s0/runs --max-age 900  # latch HALT if the heartbeat is stale (run from cron)
+python -m kernel.hygiene gc --repo runs/abl/A1_s0/repo --worktrees runs/abl/A1_s0/runs/worktrees  # remove orphan worktrees and stale branches
+touch runs/abl/A1_s0/runs/STOP                                  # ask a run to stop cleanly after the current batch
+rm runs/abl/A1_s0/runs/HALT                                     # clear a HALT latch after you inspected the cause
+```
+
+## Wiring a real LLM
+
+Implement `MetaAgent.propose(...)` (read-only access to the worktree, output through `parse_proposal`) and reuse
+`World.build(...)` or construct `Orchestrator` yourself with `SealedVerifier` (use a secret kept outside the agent's
+reach). Log the model id through the fingerprint config so a silent provider-side model change halts the run.
 
 ## Reproducibility
 
-Freeze the kernel before the report run, as in Study 1: `shasum -a 256 kernel/*.py > runs/study2/config_hashes.txt`,
-commit it, and record the calibration output with it.
+Freeze the kernel before a report run: `shasum -a 256 kernel/*.py > runs/study2/config_hashes.txt`, commit it, and keep
+the calibration and `prereg.json` outputs with it. Study 1 files are frozen (`si_loop_toy.py` sha256 is pinned in
+`results/config_hashes.txt`).
 
 ## Known limitations
 
-- The verifier and meta-agent are interfaces; no sealed problem families or LLM client are included.
-- Adaptive overfitting to the sealed distribution remains possible over many cycles; track the gap between
-  the selection split and a rarely-read audit split.
-- The static scan has known blind spots (it is intentionally strict, so it can also reject benign code).
-- `RLIMIT_AS` is unreliable on macOS and the local sandbox is POSIX only; use container mode for untrusted runs.
-- Pass@1 under stochastic decoding is noisy; use temperature 0 with a fixed seed or several samples per problem.
-- A learned or LLM-based judge (the main reward-hacking risk) is out of scope.
+- The synthetic world has no LLM. Results from it say nothing about LLM self-improvement.
+- Container mode is not tested; local mode is not a security boundary. Honeypots are tripwires.
+- Utility-path creep is bounded by the margin budget and anchor audits, not eliminated.
+- Yield tests are expensive (several inner loops per improver patch).
+- Cost accounting uses LOC and token counters, not deterministic instruction counts.
+- The static scan is strict and can reject benign code; `RLIMIT_AS` is unreliable on macOS.
+- Pass@1 under stochastic decoding is noisy; use fixed seeds or several samples per problem.
