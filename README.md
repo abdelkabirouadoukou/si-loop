@@ -14,10 +14,10 @@ Guarded recursive self-improvement (RSI) for code agents, in three studies, with
 
 | | Study 1 | Study 2 (SI-Loop v2) | Study 3 (live LLM) | Study 4 (improver arm) |
 |---|---|---|---|---|
-| **Status** | Frozen (tag `study1-frozen`) | Complete (scripted proposer) | Complete (6 pre-registered replicates) | Not implemented; no run, no locked pre-registration |
+| **Status** | Frozen (tag `study1-frozen`) | Complete (scripted proposer) | Complete (6 pre-registered replicates) | Runner built and verified (persistent e-LOND FDR fix); 13-cycle pilot, not a pre-registered replicate, 0 accepts |
 | **Setting** | Toy few-shot regression, CPU | Code agent, sealed verifier, git worktrees | Same kernel, live model (`openai/gpt-oss-120b`) | Would allow edits to `agent/meta/**` |
 | **Files** | `si_loop_toy.py`, `run_parallel.py`, `analyze.py`, `paper.tex`, `results/` | `kernel/`, `study2/`, `run_study2.py`, `run_ablations.py`, `paper_study2.tex` | `run_study3_live.py`, `study3_summary.py`, `paper_study3.tex`, `results/study3/` | `study4/`, `run_study4.py` |
-| **Paper** | `paper.pdf` | `paper_study2.pdf` | `paper_study3.pdf` | none |
+| **Paper** | `paper.pdf` | `paper_study2.pdf` | `paper_study3.pdf` | `paper_study4.pdf` |
 | **Docs** | [`docs/README_study1.md`](docs/README_study1.md) | this file | this file | [`study4/README.md`](study4/README.md) |
 
 > Study 1 files are never edited. `si_loop_toy.py` is pinned by sha256 in `results/config_hashes.txt`.
