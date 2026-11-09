@@ -65,6 +65,13 @@ def test_changed_code_is_refused(tmp_path):
         verify(p)
 
 
+def test_kernel_digest_mismatch_is_refused(tmp_path):
+    p = _make(tmp_path, code_sha256={"run_study4.py": __import__("hashlib").sha256(
+        (ROOT / "run_study4.py").read_bytes()).hexdigest()}, kernel_digest="0" * 64)
+    with pytest.raises(PreregError, match="kernel digest differs"):
+        verify(p)
+
+
 def test_wrong_study_is_refused(tmp_path):
     p = _make(tmp_path, study="study3")
     with pytest.raises(PreregError, match="not 'study4'"):
@@ -93,14 +100,29 @@ def test_runner_check_with_valid_prereg_exits_zero(tmp_path, capsys):
     assert run_study4.main(["--check", "--prereg", str(p)]) == 0
 
 
-def test_runner_run_is_never_implemented(tmp_path, capsys):
-    # Even with a valid locked prereg, the runner must not pretend to run Study 4.
+def test_runner_run_with_no_key_fails_safely_not_silently(tmp_path, capsys, monkeypatch):
+    # The runner now exists (study4/run_live.py). Even with a valid locked prereg, it must still
+    # refuse cleanly -- never silently -- when no provider key is available: exit 3, "provider
+    # error", no stack trace swallowed, no pretend-success.
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
     p = _make(tmp_path, code_sha256={"run_study4.py": __import__("hashlib").sha256(
         (ROOT / "run_study4.py").read_bytes()).hexdigest()})
-    assert run_study4.main(["--run", "--prereg", str(p)]) == 2
-    assert "not implemented" in capsys.readouterr().err
+    rc = run_study4.main(["--run", "--prereg", str(p), "--out", str(tmp_path / "out")])
+    assert rc == 3
+    assert "provider error" in capsys.readouterr().err
 
 
-def test_no_study4_prereg_is_committed():
-    # Locking is a human decision. The repo must not contain a locked Study 4 prereg by accident.
-    assert not PREREG_PATH.exists()
+def test_a_real_study4_prereg_if_present_is_internally_consistent():
+    # Locking is a human decision (the researcher's, not this code's) -- by the time one exists,
+    # this test no longer asserts it must be absent or unlocked (that invariant only held during
+    # drafting). What it keeps checking: IF a real results/study4/prereg.json exists, it is not
+    # merely present but garbled -- it is a well-formed, internally consistent pre-registration
+    # (whatever its status), i.e. it would be accepted or refused by verify() for a REAL reason,
+    # never a malformed-file accident.
+    if not PREREG_PATH.exists():
+        return
+    d = json.loads(PREREG_PATH.read_text())
+    assert d.get("study") == "study4"
+    if d.get("status") == "locked":
+        assert body_sha(d) == d.get("prereg_sha256"), "a locked prereg's body must match its own hash"

@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from kernel.improver import REFERENCE_POLICY, policy_source
+
 LIB = '''"""agent/lib.py: task library. TASKS maps task name -> function. Specs are in the docstrings."""
 
 
@@ -157,3 +159,15 @@ def write_seed_agent(root: Path) -> None:
         p = root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(txt)
+
+
+def write_seed_agent_study4(root: Path) -> None:
+    """Study 4 seed: the ordinary A0 seed agent plus agent/meta/policy.py, which the improver
+    may edit under arm A1. Content and format come from kernel/improver.py (policy_source,
+    REFERENCE_POLICY) -- the exact schema kernel/yield_test.py's YieldGate already parses.
+    Starts at the frozen reference M0."""
+    write_seed_agent(root)
+    root = Path(root)
+    (root / "agent" / "meta").mkdir(parents=True, exist_ok=True)
+    (root / "agent" / "meta" / "__init__.py").write_text("")
+    (root / "agent" / "meta" / "policy.py").write_text(policy_source(REFERENCE_POLICY))

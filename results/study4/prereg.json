@@ -1,0 +1,54 @@
+{
+ "analysis_rules": [
+  "all runs are reported, including failed and halted ones",
+  "no change to hypotheses, metric or stop rules after the first live result",
+  "no re-running a configuration to find a better outcome",
+  "the LLM sees only coarse outcomes, never counts or per-family numbers (ProposalHistory, as in Study 3)",
+  "A1 vs A0 only for this pilot; A3 is explicitly deferred and not used to claim a compute-controlled result",
+  "judge defects found in Study 3 (D1, D2) must not recur unaudited in the Study 4 judge; any new defect found after seeing a live result is disclosed as a deviation, the same way D1/D2 were",
+  "yield, as measured by YieldGate in this pilot, is the effect of a policy-number edit on a stand-in scripted improver in the synthetic world, not a direct measurement of the live LLM's own behaviour (see resolved_decisions); this limitation is reported alongside any accepted meta-scope patch"
+ ],
+ "arms_declared_deferred": {
+  "A3": "compute-matched best-of-N from the anchor; deferred because A1 alone cannot separate the improver's effect from added compute (DESIGN_DRAFT.md section 6.4) -- left for a later step"
+ },
+ "arms_run": [
+  "A0",
+  "A1"
+ ],
+ "code_sha256": {
+  "run_study4.py": "9b733414e657dc1bc3002a97e4609df9b149d66455a0fb052f9697a37d0f3b9b",
+  "study2/seed_repo.py": "32cf976ffbd51ef3b4cec3ae5627df901120b5ad3f53ea1ed2a46055c6de1b90",
+  "study4/fdr_replay.py": "7b68b06f598064da1eafb2137e4087a75b7f8c0b48307a6c46ea57056a4f73ab",
+  "study4/guard.py": "7af2f89f056fb3ffd2a2a71a78b1bf724125c513742b9bd31e88f3917b7fb522",
+  "study4/live_meta.py": "b3087461b214bf96b0e8a7d7fe2f24371beae605393e9daa501dc31664cbd2ab",
+  "study4/run_live.py": "e655602d0c83a30876fe81d1ffcbcd30782a2ae1b623801fd424ef9115e50299",
+  "study4/yield_gate.py": "ee463ff893f3072f43bd671924d94a032d5113c85718e49eadc1768787d9df86"
+ },
+ "kernel_digest": "559700ea6da523e82aab2ff05986fb13cc059e020748b504df26c4b372158b26",
+ "monitor_enforcement": "False-discovery monitor is ENFORCED (blocks on alarm) in Study 4, unlike Study 3 which ran it in monitor-only mode. An alarm during a cycle causes that accept to be refused / the run halted, not just logged.",
+ "preconditions_outstanding": [
+  "run_study4.py --run is not wired to guard.verify() + Orchestrator.run() with MetaAgentA1 and build_study4_yield_gate yet (section 5d of the task) -- the pieces exist and are tested in isolation, but are not assembled into the entry point",
+  "judge-coverage statement (DESIGN_DRAFT.md precondition 3 / study4/README.md item 4): either a judge that tests every stated rule, or an explicit list of rules it does not test -- not written yet",
+  "code_sha256 below covers only the files that exist today; it must be recomputed (and this list extended if run_study4.py itself changes) before this can be locked"
+ ],
+ "prereg_sha256": "5f63bd219933c3b22859ad543acfb3953af915b0d98472901ad4dbdda92534df",
+ "primary_metric": "count of accepted meta-scope patches that pass YieldGate and do not reduce held-out performance (DESIGN_DRAFT.md section 4, primary). Secondary: held-out gain on the parsing family, with exact intervals, as in Study 3. Integrity: ledger verifies, 0 security flags, no circuit-breaker trips, and the false-discovery monitor reported for every run.",
+ "provider": {
+  "key_source": "GROQ_API_KEY or OPENAI_API_KEY, read from the environment only, never stored"
+ },
+ "question": "Can the loop improve the code that proposes and judges its own changes, in a way that holds up on problems the improver never saw? Primary: does the live loop produce at least one accepted meta-scope patch (agent/meta/**) that passes YieldGate on its parent, without reward hacking, in a pilot comparing A1 (improver allowed) against A0 (solver only)?",
+ "resolved_decisions": {
+  "seed_repo_content (decision 1)": "RESOLVED: option A. agent/meta/policy.py holds exactly the 5-key scripted schema already parsed by kernel/improver.py (policy_from_source): POLICY = {p_meta, w_adopt, w_prune, w_mutate, use_bandit}, starting at REFERENCE_POLICY (frozen M0 values), written via kernel.improver.policy_source so the format matches exactly. Implemented as study2/seed_repo.py: write_seed_agent_study4(root), a NEW function that calls the existing write_seed_agent(root) unchanged and then adds agent/meta/__init__.py and agent/meta/policy.py. write_seed_agent() itself (used by Study 3) is untouched -- verified byte-identical output and Study 3 prereg code_sha256 still match on disk.",
+  "yield_definition (decision 2)": "RESOLVED, follows from decision 1: kernel/yield_test.py YieldGate/YieldConfig/YieldHarness are reused completely unmodified. Judging a meta-scope patch costs ZERO live LLM calls. UPDATE: the measurement bug that made this unusable on a study2-shaped repo is now understood and fixed IN DESIGN (not yet wired): YieldHarness.measure() always builds a synthetic kernel/world.py World and evaluates with the synthetic SealedVerifier, regardless of what source repo it clones. run_ablations.py A1 works today only because its source repo IS already World-built; pointing the same harness at Study 4 live repo (study2-shaped) made it read pass@1 = 0.0 for every state, unconditionally -- confirmed by direct measurement. FIX (confirmed, not yet wired): give YieldHarness a DEDICATED, separately-built synthetic repo (kernel.world.World.init_repo) as its source, never the live study2/Study4 repo -- a wiring choice for the runner (step 5d), not a kernel/ change. Verified non-degenerate (pass@1 responds to the actual code again) in tests/test_study4_integration.py::test_yield_harness_must_measure_against_a_synthetic_source_not_the_live_study2_repo. The disclosed trade-off is unchanged: yield still measures the scripted stand-in agent in its own synthetic world, not the live LLM itself -- the fix only makes that measurement respond to the policy numbers instead of silently always reading zero."
+ },
+ "status": "locked",
+ "stop_rules": [
+  "circuit breakers (kernel/breakers.py) halt the run",
+  "run_token_cap and per-cycle caps (as in Study 3)",
+  "kernel digest tamper aborts the run (KernelGuard)",
+  "false-discovery monitor alarm BLOCKS the affected accept (enforced, not monitor-only -- decision 3)",
+  "mixed-scope patch (touches both agent/meta/** and the solver) is refused by the kernel GuardViolation"
+ ],
+ "study": "study4",
+ "title": "Study 4: the improver arm (pilot)"
+}
